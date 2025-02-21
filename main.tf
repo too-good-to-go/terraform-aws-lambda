@@ -5,7 +5,9 @@ data "aws_caller_identity" "current" {}
 locals {
   create                               = var.create && var.putin_khuylo
   create_with_ignore_image_uri_changes = var.ignore_image_uri_changes && var.image_uri != null
-  aws_lambda_function_this             = try(aws_lambda_function.this_ignore_image_uri_changes[0], null) != null ? aws_lambda_function.this_ignore_image_uri_changes : aws_lambda_function.this
+  aws_lambda_function_this             = (local.create_with_ignore_image_uri_changes ?
+    try(aws_lambda_function.this_ignore_image_uri_changes[0], aws_lambda_function.this[0]) :
+    try(aws_lambda_function.this[0], aws_lambda_function.this_ignore_image_uri_changes[0]))
 
   archive_filename        = try(data.external.archive_prepare[0].result.filename, null)
   archive_filename_string = local.archive_filename != null ? local.archive_filename : ""
@@ -20,14 +22,6 @@ locals {
   s3_bucket         = var.s3_existing_package != null ? try(var.s3_existing_package.bucket, null) : (var.store_on_s3 ? var.s3_bucket : null)
   s3_key            = var.s3_existing_package != null ? try(var.s3_existing_package.key, null) : (var.store_on_s3 ? var.s3_prefix != null ? format("%s%s", var.s3_prefix, replace(local.archive_filename_string, "/^.*//", "")) : replace(local.archive_filename_string, "/^\\.//", "") : null)
   s3_object_version = var.s3_existing_package != null ? try(var.s3_existing_package.version_id, null) : (var.store_on_s3 ? try(aws_s3_object.lambda_package[0].version_id, null) : null)
-}
-
-resource "null_resource" "lambda_replacement_trigger" {
-  count = local.create && var.create_function && !var.create_layer ? 1 : 0
-
-  triggers = {
-    lambda_type = local.create_with_ignore_image_uri_changes ? "ignore_changes" : "standard"
-  }
 }
 
 resource "aws_lambda_function" "this" {
@@ -170,8 +164,7 @@ resource "aws_lambda_function" "this" {
   ]
 
   lifecycle {
-    # Add replace trigger based on lambda_type
-    replace_triggered_by = [null_resource.lambda_replacement_trigger[0].id]
+    create_before_destroy = true
   }
 }
 
@@ -316,11 +309,10 @@ resource "aws_lambda_function" "this_ignore_image_uri_changes" {
   ]
 
   lifecycle {
+    create_before_destroy = true
     ignore_changes = [
       image_uri,
     ]
-    # Add replace trigger based on lambda_type
-    replace_triggered_by = [null_resource.lambda_replacement_trigger[0].id]
   }
 }
 
