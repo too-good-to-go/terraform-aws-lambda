@@ -21,6 +21,8 @@ locals {
   s3_key            = var.s3_existing_package != null ? try(var.s3_existing_package.key, null) : (var.store_on_s3 ? var.s3_prefix != null ? format("%s%s", var.s3_prefix, replace(local.archive_filename_string, "/^.*//", "")) : replace(local.archive_filename_string, "/^\\.//", "") : null)
   s3_object_version = var.s3_existing_package != null ? try(var.s3_existing_package.version_id, null) : (var.store_on_s3 ? try(aws_s3_object.lambda_package[0].version_id, null) : null)
 
+  # Add this new local to track which resource should exist
+  lambda_type = local.create_with_ignore_image_uri_changes ? "ignore_changes" : "standard"
 }
 
 resource "aws_lambda_function" "this" {
@@ -161,6 +163,11 @@ resource "aws_lambda_function" "this" {
     aws_iam_role_policy_attachment.vpc,
     aws_iam_role_policy_attachment.tracing,
   ]
+
+  lifecycle {
+    # Add replace trigger based on lambda_type
+    replace_triggered_by = [local.lambda_type]
+  }
 }
 
 
@@ -307,6 +314,8 @@ resource "aws_lambda_function" "this_ignore_image_uri_changes" {
     ignore_changes = [
       image_uri,
     ]
+    # Add replace trigger based on lambda_type
+    replace_triggered_by = [local.lambda_type]
   }
 }
 
