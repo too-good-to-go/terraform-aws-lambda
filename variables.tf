@@ -46,6 +46,12 @@ variable "putin_khuylo" {
   default     = true
 }
 
+variable "region" {
+  description = "Region where the resource(s) will be managed. Defaults to the region set in the provider configuration"
+  type        = string
+  default     = null
+}
+
 ###########
 # Function
 ###########
@@ -176,10 +182,22 @@ variable "vpc_security_group_ids" {
   default     = null
 }
 
+variable "ipv6_allowed_for_dual_stack" {
+  description = "Allows outbound IPv6 traffic on VPC functions that are connected to dual-stack subnets"
+  type        = bool
+  default     = null
+}
+
 variable "tags" {
   description = "A map of tags to assign to resources."
   type        = map(string)
   default     = {}
+}
+
+variable "include_default_tag" {
+  description = "Set to false to not include the default tag in the tags map."
+  type        = bool
+  default     = true
 }
 
 variable "function_tags" {
@@ -258,6 +276,12 @@ variable "timeouts" {
   description = "Define maximum timeout for creating, updating, and deleting Lambda Function resources"
   type        = map(string)
   default     = {}
+}
+
+variable "skip_destroy" {
+  description = "Set to true if you do not wish the function to be deleted at destroy time, and instead just remove the function from the Terraform state. Useful for Lambda@Edge functions attached to CloudFront distributions."
+  type        = bool
+  default     = null
 }
 
 ###############
@@ -438,6 +462,18 @@ variable "cloudwatch_logs_kms_key_id" {
   default     = null
 }
 
+variable "cloudwatch_logs_skip_destroy" {
+  description = "Whether to keep the log group (and any logs it may contain) at destroy time."
+  type        = bool
+  default     = false
+}
+
+variable "cloudwatch_logs_log_group_class" {
+  description = "Specified the log class of the log group. Possible values are: `STANDARD` or `INFREQUENT_ACCESS`"
+  type        = string
+  default     = null
+}
+
 variable "cloudwatch_logs_tags" {
   description = "A map of tags to assign to the resource."
   type        = map(string)
@@ -558,12 +594,6 @@ variable "attach_policies" {
   description = "Controls whether list of policies should be added to IAM role for Lambda Function"
   type        = bool
   default     = false
-}
-
-variable "policy_path" {
-  description = "Path of policies to that should be added to IAM role for Lambda Function"
-  type        = string
-  default     = null
 }
 
 variable "number_of_policy_jsons" {
@@ -780,6 +810,12 @@ variable "trigger_on_package_timestamp" {
   default     = true
 }
 
+variable "quiet_archive_local_exec" {
+  description = "Whether to disable archive local execution output"
+  type        = bool
+  default     = true
+}
+
 ############################################
 # Lambda Advanced Logging Settings
 ############################################
@@ -804,6 +840,16 @@ variable "logging_system_log_level" {
 
 variable "logging_log_group" {
   description = "The CloudWatch log group to send logs to."
+  type        = string
+  default     = null
+}
+
+############################################
+# Lambda Recursive Loop Settings
+############################################
+
+variable "recursive_loop" {
+  description = "Lambda function recursion configuration. Valid values are Allow or Terminate."
   type        = string
   default     = null
 }
