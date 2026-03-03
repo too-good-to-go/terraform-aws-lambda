@@ -1,5 +1,5 @@
 module main
 
-go 1.22.6
+go 1.24.0
 
-require github.com/aws/aws-lambda-go v1.47.0 // indirect
+require github.com/aws/aws-lambda-go v1.48.0 // indirect
